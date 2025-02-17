@@ -7,6 +7,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract FarmCoin is ERC20, Ownable {
     constructor() ERC20("FarmCoin", "FARM") Ownable(msg.sender) {}
 
+    function decimals() public pure override returns (uint8) {
+        return 0;
+    }
+
     // Seul l'État peut mint des FarmCoins
     function mint(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
