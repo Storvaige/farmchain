@@ -1,78 +1,62 @@
-const hre = require("hardhat");
 const fs = require("fs");
+const path = require("path");
+const { ethers } = require("hardhat");
 
 async function main() {
-  const [admin, user] = await hre.ethers.getSigners();
+  // 1. takes 3 first signers
+  const [admin, user1, user2] = await ethers.getSigners();
 
-  // 1. Déployer FarmCoin
-  const FarmCoin = await hre.ethers.getContractFactory("FarmCoin");
-  const farmCoin = await FarmCoin.deploy();
-  await farmCoin.waitForDeployment();
-  const farmCoinAddress = await farmCoin.getAddress();
-  console.log("FarmCoin deployed at", await farmCoin.getAddress());
+  console.log("Deploying with admin address:", admin.address);
+  console.log("User1 address:", user1.address);
+  console.log("User2 address:", user2.address);
 
-  const totalFarmCoinsToMint = 15500; // 15000 pour conversion + 500 restants
-  await farmCoin.mint(admin.address, totalFarmCoinsToMint);
-  console.log(`✅ Minted ${totalFarmCoinsToMint} FarmCoins to admin`);
+  // 2. Deploy the Chicken contract
+  const Chicken = await ethers.getContractFactory("Chicken");
+  const chicken = await Chicken.deploy();
+  await chicken.waitForDeployment(); // Ethers v6
+  const chickenAddress = await chicken.getAddress();
+  console.log("Chicken deployed to:", chickenAddress);
 
-  // 2. Déployer ChickenCoin
-  const ChickenCoin = await hre.ethers.getContractFactory("ChickenCoin");
-  const chickenCoin = await ChickenCoin.deploy(farmCoinAddress);
-  await chickenCoin.waitForDeployment();
-  const chickenCoinAddress = await chickenCoin.getAddress();
-  console.log("ChickenCoin deployed at", chickenCoinAddress);
+  // 3. Deploy the Sheep contract
+  const Sheep = await ethers.getContractFactory("Sheep");
+  const sheep = await Sheep.deploy();
+  await sheep.waitForDeployment();
+  const sheepAddress = await sheep.getAddress();
+  console.log("Sheep deployed to:", sheepAddress);
 
-  // 3. Déployer ElephantCoin
-  const ElephantCoin = await hre.ethers.getContractFactory("ElephantCoin");
-  const elephantCoin = await ElephantCoin.deploy(chickenCoinAddress);
-  await elephantCoin.waitForDeployment();
-  const elephantCoinAddress = await elephantCoin.getAddress();
-  console.log("ElephantCoin deployed at", elephantCoinAddress);
+  // 4. Deploy the Elephant contract
+  const Elephant = await ethers.getContractFactory("Elephant");
+  const elephant = await Elephant.deploy();
+  await elephant.waitForDeployment();
+  const elephantAddress = await elephant.getAddress();
+  console.log("Elephant deployed to:", elephantAddress);
 
+  // 5. Create (or update) the deployments/localhost.json file
+  const deploymentsDir = path.join(__dirname, "../deployments");
+  if (!fs.existsSync(deploymentsDir)) {
+    fs.mkdirSync(deploymentsDir);
+  }
 
-  // 4. Déployer ResourceRegistry
-  const ResourceRegistry = await hre.ethers.getContractFactory("ResourceRegistry");
-  const resourceRegistry = await ResourceRegistry.deploy();
-  await resourceRegistry.waitForDeployment();
-  const resourceRegistryAddress = await resourceRegistry.getAddress();
-  console.log("ResourceRegistry deployed at", resourceRegistryAddress);
+  const filePath = path.join(deploymentsDir, "localhost.json");
 
-
-  // 5. Configurer chaque contrat pour utiliser le ResourceRegistry
-  await farmCoin.setResourceRegistry(resourceRegistryAddress);
-  await chickenCoin.setResourceRegistry(resourceRegistryAddress);
-  await elephantCoin.setResourceRegistry(resourceRegistryAddress);
-  console.log("✅ ResourceRegistry set on all coin contracts");
-
-  // 6. L'admin approuve le contrat ChickenCoin pour transférer 15000 FarmCoins
-  const requiredFarmForChicken = 15 * 1000; // 15000 FarmCoins pour 15 ChickenCoins
-  let tx = await farmCoin.connect(admin).approve(chickenCoinAddress, requiredFarmForChicken);
-  await tx.wait();
-  console.log(`✅ Admin approved ${requiredFarmForChicken} FarmCoins for ChickenCoin conversion`);
-
-  // 7. Mint 15 ChickenCoins pour l'admin (15000 FarmCoins seront transférés)
-  tx = await chickenCoin.connect(admin).mintChicken(15);
-  await tx.wait();
-  console.log("✅ Minted 15 ChickenCoins for admin");
-
-  // 8. Sauvegarder les adresses des contrats
-  const addresses = {
-    FarmCoin: farmCoinAddress,
-    ChickenCoin: chickenCoinAddress,
-    ElephantCoin: elephantCoinAddress,
-    ResourceRegistry: resourceRegistryAddress
+  const data = {
+    // Contract addresses
+    Chicken: chickenAddress,
+    Sheep: sheepAddress,
+    Elephant: elephantAddress,
+    // Signers’ addresses
+    Admin: admin.address,
+    User1: user1.address,
+    User2: user2.address,
   };
-  fs.writeFileSync("./deployments/localhost.json", JSON.stringify(addresses, null, 2));
-  console.log("✅ Contract addresses saved");
 
-  // 9. Afficher les balances de l'admin
-  const adminFarmBalance = await farmCoin.balanceOf(admin.address);
-  const adminChickenBalance = await chickenCoin.balanceOf(admin.address);
-  console.log(`👨💼 Admin FarmCoin Balance: ${adminFarmBalance.toString()}`);
-  console.log(`👨💼 Admin ChickenCoin Balance: ${adminChickenBalance.toString()}`);
+  // 6. Write out the JSON file
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  console.log(`Addresses saved to ${filePath}`);
 }
 
-main().catch(error => {
+// Standard Hardhat pattern for async main()
+main().catch((error) => {
   console.error(error);
-  process.exit(1);
+  process.exitCode = 1;
 });
