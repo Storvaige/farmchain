@@ -1,17 +1,16 @@
-# Sample Hardhat Project
+# Project Farmchain
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+Etapes de configuration
 
-Try running some of the following tasks:
-
+Terminal 1 :
 ```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.js
-```
-
-```shell
+npm install
 npx hardhat node
 ```
+
+
+Terminal 2 :
+```shell
+npx hardhat run scripts/deploy.js --network localhost
+```
+puis remplacer deploy.js par le nom du fichier script au besoin (dans dossier scripts)
