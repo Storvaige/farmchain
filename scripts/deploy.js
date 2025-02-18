@@ -11,7 +11,7 @@ async function main() {
   const farmCoinAddress = await farmCoin.getAddress();
   console.log("FarmCoin deployed at", await farmCoin.getAddress());
 
-  const totalFarmCoinsToMint = 15500; // 15000 pour conversion + 500 restants
+  const totalFarmCoinsToMint = 15000; // 15000 pour conversion + 500 restants
   await farmCoin.mint(admin.address, totalFarmCoinsToMint);
   console.log(`✅ Minted ${totalFarmCoinsToMint} FarmCoins to admin`);
 
