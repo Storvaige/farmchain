@@ -5,7 +5,7 @@ import "./Animal.sol";
 
 /**
  * @title Elephant
- * @dev Contrat ERC721 pour représenter un Elephant
+ * @dev Contrat ERC721 pour reprÃ©senter un Elephant
  */
 contract Elephant is Animal {
     constructor() Animal("Elephant", "ELPH") {}
@@ -15,6 +15,6 @@ contract Elephant is Animal {
         string memory name_,
         string memory ipfsHash_
     ) external onlyOwner {
-        _mintResource(to, name_, "Elephant", 6, ipfsHash_);
+        _mintResource(to, name_, "Elephant", ELEPHANT_VALUE, ipfsHash_);
     }
 }

@@ -18,10 +18,11 @@ describe("Chicken Contract", function () {
 
   it("Should retrieve correct metadata", async function () {
     const tokenId = 1;
+    const chickenValue = await chicken.CHICKEN_VALUE();
     const meta = await chicken.getResourceMetadata(tokenId);
     expect(meta.name).to.equal("MyChicken");
     expect(meta.resourceType).to.equal("Chicken");
-    expect(meta.value).to.equal(1);
+    expect(meta.value).to.equal(chickenValue);
     expect(meta.ipfsHash).to.equal("QmIPFSHash");
   });
 });
