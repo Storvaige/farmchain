@@ -21,6 +21,6 @@ contract Chicken is Animal {
         string memory name_,
         string memory ipfsHash_
     ) external onlyOwner {
-        _mintResource(to, name_, "Chicken", 1, ipfsHash_);
+        _mintResource(to, name_, "Chicken", CHICKEN_VALUE, ipfsHash_);
     }
 }

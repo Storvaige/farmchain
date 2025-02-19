@@ -14,6 +14,8 @@
     "hardhat": "^2.22.18"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.8.0"
+    "@openzeppelin/contracts": "^4.8.0",
+    "ipfs-http-client": "^50.1.2",
+    "ipfs-utils": "^9.0.14"
   }
 }
