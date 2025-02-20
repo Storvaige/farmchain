@@ -47,6 +47,7 @@ async function main() {
                     const createdDate = meta.createdAt ? new Date(Number(meta.createdAt) * 1000).toISOString() : 'N/A';
                     const transferDate = meta.lastTransferAt ? new Date(Number(meta.lastTransferAt) * 1000).toISOString() : 'N/A';
                     const ownersHistoryStr = Array.isArray(meta.ownersHistory) ? meta.ownersHistory.join(", ") : 'No history';
+                    const lockedUntil = meta.lockedUntil ? new Date(Number(meta.lockedUntil) * 1000).toISOString() : 'N/A';
 
                     console.log(`${green}Token #${tokenId}:${reset}`);
                     console.log(`${green}  Name:   ${meta.name || 'N/A'}${reset}`);
@@ -56,6 +57,7 @@ async function main() {
                     console.log(`${green}  CreatedAt:      ${createdDate}${reset}`);
                     console.log(`${green}  LastTransferAt: ${transferDate}${reset}`);
                     console.log(`${green}  ownersHistory: ${ownersHistoryStr}${reset}`);
+                    console.log(`${green}  lockedUntil:    ${lockedUntil}${reset}`);
                 } catch (err) {
                     console.error(`Error formatting metadata for token #${tokenId}:`, err);
                     console.log(meta);

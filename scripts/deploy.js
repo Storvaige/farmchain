@@ -61,6 +61,20 @@ async function main() {
   const elephantAddress = await elephant.getAddress();
   console.log("Elephant deployed to:", elephantAddress);
 
+  // AnimalExchange
+  const AnimalExchange = await ethers.getContractFactory("AnimalExchange");
+  const exchange = await AnimalExchange.deploy();
+  await exchange.waitForDeployment();
+  const exchangeAddress = await exchange.getAddress();
+  console.log("AnimalExchange deployed to:", exchangeAddress);
+
+
+  await chicken.setExchangeAddress(exchangeAddress);
+  await sheep.setExchangeAddress(exchangeAddress);
+  await elephant.setExchangeAddress(exchangeAddress);
+
+
+
   // 2) Write addresses + IPFS CIDs to deployments/localhost.json
   const deploymentsDir = path.join(__dirname, "../deployments");
   if (!fs.existsSync(deploymentsDir)) {
@@ -72,6 +86,7 @@ async function main() {
     Chicken: chickenAddress,
     Sheep: sheepAddress,
     Elephant: elephantAddress,
+    AnimalExchange: exchangeAddress,
     // IPFS CIDs for images
     ChickenCID: chickenCID,
     SheepCID: sheepCID,
