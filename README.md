@@ -1,26 +1,33 @@
 # Project Farmchain
 
-Etapes de configuration
+## URL du repo
 
-Terminal 1 :
+```
+https://github.com/Storvaige/farmchain
+```
+
+## Etapes de configuration
+
+**Terminal 1** :
 ```shell
 npm install
 npx hardhat node
 ```
 
-Terminal 2 :
+**Terminal 2** :
 Lancer le serveur IPFS
 ```shell
-    ipfs daemon 
+ipfs daemon 
 ```
 
-Terminal 3 :
+**Terminal 3** :
+*Déployer*
 ```shell
 npx hardhat run scripts/deploy.js --network localhost
 ```
 puis remplacer deploy.js par le nom du fichier script au besoin (dans dossier scripts)
 
-Lancer les tests 
+*Lancer les tests*
 ```shell
-    npx hardhat test
+npx hardhat test
 ```
