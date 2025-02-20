@@ -1,4 +1,3 @@
-// scripts/addAnimals.js
 const fs = require("fs");
 const path = require("path");
 const { ethers } = require("hardhat");
@@ -27,12 +26,15 @@ async function main() {
   const sheep = Sheep.attach(data.Sheep);
   const elephant = Elephant.attach(data.Elephant);
 
+  const chickenIpfsHash = data.ChickenCID;
+  const sheepIpfsHash = data.SheepCID;
+  const elephantIpfsHash = data.ElephantCID;
+
   // 4. Minter 3 Chickens
   console.log("=== Minting 3 Chickens ===");
   for (let i = 1; i <= 3; i++) {
     const name = `Chicken #${i}`;
-    const ipfsHash = "QmFakeHashChicken";
-    const tx = await chicken.mintChicken(admin.address, name, ipfsHash);
+    const tx = await chicken.mintChicken(admin.address, name, chickenIpfsHash);
     await tx.wait(); // Ethers v6
     console.log(`Minted Chicken #${i} to ${admin.address}`);
   }
@@ -41,8 +43,7 @@ async function main() {
   console.log("=== Minting 3 Sheeps ===");
   for (let i = 1; i <= 3; i++) {
     const name = `Sheep #${i}`;
-    const ipfsHash = "QmFakeHashSheep";
-    const tx = await sheep.mintSheep(admin.address, name, ipfsHash);
+    const tx = await sheep.mintSheep(admin.address, name, sheepIpfsHash);
     await tx.wait();
     console.log(`Minted Sheep #${i} to ${admin.address}`);
   }
@@ -51,8 +52,7 @@ async function main() {
   console.log("=== Minting 3 Elephants ===");
   for (let i = 1; i <= 3; i++) {
     const name = `Elephant #${i}`;
-    const ipfsHash = "QmFakeHashElephant";
-    const tx = await elephant.mintElephant(admin.address, name, ipfsHash);
+    const tx = await elephant.mintElephant(admin.address, name, elephantIpfsHash);
     await tx.wait();
     console.log(`Minted Elephant #${i} to ${admin.address}`);
   }
