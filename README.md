@@ -15,12 +15,14 @@ npx hardhat node
 ```
 
 **Terminal 2** :
+
 Lancer le serveur IPFS
 ```shell
 ipfs daemon 
 ```
 
 **Terminal 3** :
+
 *Déployer*
 ```shell
 npx hardhat run scripts/deploy.js --network localhost
