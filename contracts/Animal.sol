@@ -74,7 +74,25 @@ abstract contract Animal is ERC721, Ownable {
         _safeMint(to, newTokenId);
     }
 
-    // Public getter for metadata
+    
+    /**
+     * @dev Fonction interne pour brûler un token existant
+     * @param tokenId ID du token à brûler
+     */
+    function _burnResource(uint256 tokenId) internal {
+        // Vérifier que le token existe
+        require(_exists(tokenId), "Animal: Token does not exist");
+
+        // Supprimer les métadonnées associées
+        delete _tokenMetadata[tokenId];
+
+        // Brûler le token
+        _burn(tokenId);
+    }
+
+    /**
+     * @notice Récupère les métadonnées d'un token
+     */
     function getResourceMetadata(uint256 tokenId)
         external
         view

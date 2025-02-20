@@ -23,4 +23,14 @@ contract Chicken is Animal {
     ) external onlyOwner {
         _mintResource(to, name_, "Chicken", CHICKEN_VALUE, ipfsHash_);
     }
+
+    /**
+     * @notice Brûler un Chicken existant
+     * @param tokenId ID du token à brûler
+     */
+    function burnResource(uint256 tokenId) external {
+        // Vérifier que l'appelant est le propriétaire ou approuvé
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "Chicken: caller is not owner nor approved");
+        _burnResource(tokenId);
+    }
 }
