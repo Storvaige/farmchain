@@ -14,8 +14,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 abstract contract Animal is ERC721, Ownable {
     // CONSTANTES
     uint256 public constant MAX_TOKENS_PER_OWNER = 10;
-    uint256 public constant TRANSFER_COOLDOWN = 0;    // 5 minutes
-    uint256 public constant ACQUISITION_LOCK = 0;     // 10 minutes
+    uint256 public constant TRANSFER_COOLDOWN = 300;    // 5 minutes
+    uint256 public constant ACQUISITION_LOCK = 600;     // 10 minutes
 
     uint256 public constant CHICKEN_VALUE = 1;
     uint256 public constant SHEEP_VALUE = 3;
