@@ -1,78 +1,109 @@
-const hre = require("hardhat");
+require("./polyfillFetch");
 const fs = require("fs");
+const path = require("path");
+const { ethers } = require("hardhat");
+const { create } = require("ipfs-http-client");
 
 async function main() {
-  const [admin, user] = await hre.ethers.getSigners();
+  // 0) Start by uploading images to local IPFS
+  const ipfs = create({
+    host: "127.0.0.1",
+    port: 5001,
+    protocol: "http",
+  });
+  console.log("Connected to local IPFS on http://127.0.0.1:5001");
 
-  // 1. Déployer FarmCoin
-  const FarmCoin = await hre.ethers.getContractFactory("FarmCoin");
-  const farmCoin = await FarmCoin.deploy();
-  await farmCoin.waitForDeployment();
-  const farmCoinAddress = await farmCoin.getAddress();
-  console.log("FarmCoin deployed at", await farmCoin.getAddress());
+  // We'll read the 3 images from the assets folder
+  const assetsDir = path.join(__dirname, "../assets");
 
-  const totalFarmCoinsToMint = 15500; // 15000 pour conversion + 500 restants
-  await farmCoin.mint(admin.address, totalFarmCoinsToMint);
-  console.log(`✅ Minted ${totalFarmCoinsToMint} FarmCoins to admin`);
+  // 0.1) Chicken image
+  const chickenData = fs.readFileSync(path.join(assetsDir, "chicken.png"));
+  const chickenResult = await ipfs.add(chickenData);
+  const chickenCID = chickenResult.cid.toString();
+  console.log("Uploaded Chicken image to IPFS, CID =", chickenCID);
 
-  // 2. Déployer ChickenCoin
-  const ChickenCoin = await hre.ethers.getContractFactory("ChickenCoin");
-  const chickenCoin = await ChickenCoin.deploy(farmCoinAddress);
-  await chickenCoin.waitForDeployment();
-  const chickenCoinAddress = await chickenCoin.getAddress();
-  console.log("ChickenCoin deployed at", chickenCoinAddress);
+  // 0.2) Sheep image
+  const sheepData = fs.readFileSync(path.join(assetsDir, "sheep.png"));
+  const sheepResult = await ipfs.add(sheepData);
+  const sheepCID = sheepResult.cid.toString();
+  console.log("Uploaded Sheep image to IPFS, CID =", sheepCID);
 
-  // 3. Déployer ElephantCoin
-  const ElephantCoin = await hre.ethers.getContractFactory("ElephantCoin");
-  const elephantCoin = await ElephantCoin.deploy(chickenCoinAddress);
-  await elephantCoin.waitForDeployment();
-  const elephantCoinAddress = await elephantCoin.getAddress();
-  console.log("ElephantCoin deployed at", elephantCoinAddress);
+  // 0.3) Elephant image
+  const elephantData = fs.readFileSync(path.join(assetsDir, "elephant.png"));
+  const elephantResult = await ipfs.add(elephantData);
+  const elephantCID = elephantResult.cid.toString();
+  console.log("Uploaded Elephant image to IPFS, CID =", elephantCID);
+
+  // 1) Deploy the 3 contracts
+  const [admin, user1, user2] = await ethers.getSigners();
+  console.log("\nDeploying with admin address:", admin.address);
+  console.log("User1 address:", user1.address);
+  console.log("User2 address:", user2.address);
+
+  // Chicken
+  const Chicken = await ethers.getContractFactory("Chicken");
+  const chicken = await Chicken.deploy();
+  await chicken.waitForDeployment();
+  const chickenAddress = await chicken.getAddress();
+  console.log("Chicken deployed to:", chickenAddress);
+
+  // Sheep
+  const Sheep = await ethers.getContractFactory("Sheep");
+  const sheep = await Sheep.deploy();
+  await sheep.waitForDeployment();
+  const sheepAddress = await sheep.getAddress();
+  console.log("Sheep deployed to:", sheepAddress);
+
+  // Elephant
+  const Elephant = await ethers.getContractFactory("Elephant");
+  const elephant = await Elephant.deploy();
+  await elephant.waitForDeployment();
+  const elephantAddress = await elephant.getAddress();
+  console.log("Elephant deployed to:", elephantAddress);
+
+  // AnimalExchange
+  const AnimalExchange = await ethers.getContractFactory("AnimalExchange");
+  const exchange = await AnimalExchange.deploy();
+  await exchange.waitForDeployment();
+  const exchangeAddress = await exchange.getAddress();
+  console.log("AnimalExchange deployed to:", exchangeAddress);
 
 
-  // 4. Déployer ResourceRegistry
-  const ResourceRegistry = await hre.ethers.getContractFactory("ResourceRegistry");
-  const resourceRegistry = await ResourceRegistry.deploy();
-  await resourceRegistry.waitForDeployment();
-  const resourceRegistryAddress = await resourceRegistry.getAddress();
-  console.log("ResourceRegistry deployed at", resourceRegistryAddress);
+  await chicken.setExchangeAddress(exchangeAddress);
+  await sheep.setExchangeAddress(exchangeAddress);
+  await elephant.setExchangeAddress(exchangeAddress);
 
 
-  // 5. Configurer chaque contrat pour utiliser le ResourceRegistry
-  await farmCoin.setResourceRegistry(resourceRegistryAddress);
-  await chickenCoin.setResourceRegistry(resourceRegistryAddress);
-  await elephantCoin.setResourceRegistry(resourceRegistryAddress);
-  console.log("✅ ResourceRegistry set on all coin contracts");
 
-  // 6. L'admin approuve le contrat ChickenCoin pour transférer 15000 FarmCoins
-  const requiredFarmForChicken = 15 * 1000; // 15000 FarmCoins pour 15 ChickenCoins
-  let tx = await farmCoin.connect(admin).approve(chickenCoinAddress, requiredFarmForChicken);
-  await tx.wait();
-  console.log(`✅ Admin approved ${requiredFarmForChicken} FarmCoins for ChickenCoin conversion`);
-
-  // 7. Mint 15 ChickenCoins pour l'admin (15000 FarmCoins seront transférés)
-  tx = await chickenCoin.connect(admin).mintChicken(15);
-  await tx.wait();
-  console.log("✅ Minted 15 ChickenCoins for admin");
-
-  // 8. Sauvegarder les adresses des contrats
-  const addresses = {
-    FarmCoin: farmCoinAddress,
-    ChickenCoin: chickenCoinAddress,
-    ElephantCoin: elephantCoinAddress,
-    ResourceRegistry: resourceRegistryAddress
+  // 2) Write addresses + IPFS CIDs to deployments/localhost.json
+  const deploymentsDir = path.join(__dirname, "../deployments");
+  if (!fs.existsSync(deploymentsDir)) {
+    fs.mkdirSync(deploymentsDir);
+  }
+  const filePath = path.join(deploymentsDir, "localhost.json");
+  const data = {
+    // Contract addresses
+    Chicken: chickenAddress,
+    Sheep: sheepAddress,
+    Elephant: elephantAddress,
+    AnimalExchange: exchangeAddress,
+    // IPFS CIDs for images
+    ChickenCID: chickenCID,
+    SheepCID: sheepCID,
+    ElephantCID: elephantCID,
+    // Signers
+    Admin: admin.address,
+    User1: user1.address,
+    User2: user2.address,
   };
-  fs.writeFileSync("./deployments/localhost.json", JSON.stringify(addresses, null, 2));
-  console.log("✅ Contract addresses saved");
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  console.log(`\nWrote addresses + IPFS CIDs to ${filePath}`);
 
-  // 9. Afficher les balances de l'admin
-  const adminFarmBalance = await farmCoin.balanceOf(admin.address);
-  const adminChickenBalance = await chickenCoin.balanceOf(admin.address);
-  console.log(`👨💼 Admin FarmCoin Balance: ${adminFarmBalance.toString()}`);
-  console.log(`👨💼 Admin ChickenCoin Balance: ${adminChickenBalance.toString()}`);
+  console.log("\n== Deployment + IPFS done. ==");
 }
 
-main().catch(error => {
+
+main().catch((error) => {
   console.error(error);
-  process.exit(1);
+  process.exitCode = 1;
 });
