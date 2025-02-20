@@ -14,8 +14,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 abstract contract Animal is ERC721, Ownable {
     // CONSTANTES
     uint256 public constant MAX_TOKENS_PER_OWNER = 10;
-    uint256 public constant TRANSFER_COOLDOWN = 300;    // 5 minutes
-    uint256 public constant ACQUISITION_LOCK = 600;     // 10 minutes
+    uint256 public constant TRANSFER_COOLDOWN = 0;    // 5 minutes
+    uint256 public constant ACQUISITION_LOCK = 0;     // 10 minutes
 
     uint256 public constant CHICKEN_VALUE = 1;
     uint256 public constant SHEEP_VALUE = 3;
@@ -85,6 +85,21 @@ abstract contract Animal is ERC721, Ownable {
     }
 
     /**
+     * @dev Fonction interne pour brûler un token existant
+     * @param tokenId ID du token à brûler
+     */
+    function _burnResource(uint256 tokenId) internal {
+        // Vérifier que le token existe
+        require(_exists(tokenId), "Animal: Token does not exist");
+
+        // Supprimer les métadonnées associées
+        delete _tokenMetadata[tokenId];
+
+        // Brûler le token
+        _burn(tokenId);
+    }
+
+    /**
      * @notice Récupère les métadonnées d'un token
      */
     function getResourceMetadata(uint256 tokenId)
@@ -133,7 +148,7 @@ abstract contract Animal is ERC721, Ownable {
                 "Animal: receiver has 10 tokens already"
             );
 
-            // (2) Vérifier le cooldown pour le "from"F
+            // (2) Vérifier le cooldown pour le "from"
             uint256 lastTx = lastTransferTimestamp[from];
             require(
                 block.timestamp >= lastTx + TRANSFER_COOLDOWN,

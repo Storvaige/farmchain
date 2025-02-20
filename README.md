@@ -8,8 +8,13 @@ npm install
 npx hardhat node
 ```
 
-
 Terminal 2 :
+Lancer le serveur IPFS
+```shell
+    ipfs daemon 
+```
+
+Terminal 3 :
 ```shell
 npx hardhat run scripts/deploy.js --network localhost
 ```

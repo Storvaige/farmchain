@@ -1,80 +1,73 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.0;
 
-/**
- * @dev Interfaces simplifiées pour invoquer les sous-contrats
- */
-interface IChicken {
-    function ownerOf(uint256 tokenId) external view returns (address);
-    function transferFrom(address from, address to, uint256 tokenId) external;
-}
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-interface ISheep {
-    function ownerOf(uint256 tokenId) external view returns (address);
-    function transferFrom(address from, address to, uint256 tokenId) external;
-    function mintSheep(address to, string memory name_, string memory ipfsHash_, uint256 value_) external;
-}
+contract ExchangeAnimals is Ownable {
+    IERC721 public chickenContract;
+    IERC721 public sheepContract;
+    IERC721 public elephantContract;
 
-interface IElephant {
-    function mintElephant(address to, string memory name_, string memory ipfsHash_, uint256 value_) external;
-}
+    mapping(uint256 => bool) public chickenLocked;
+    mapping(uint256 => bool) public sheepLocked;
+    mapping(uint256 => bool) public elephantLocked;
 
-contract ExchangeAnimals {
-    address public chicken;
-    address public sheep;
-    address public elephant;
-
-    constructor(address _chicken, address _sheep, address _elephant) {
-        chicken = _chicken;
-        sheep = _sheep;
-        elephant = _elephant;
+    constructor(address _chickenAddress, address _sheepAddress, address _elephantAddress) {
+        chickenContract = IERC721(_chickenAddress);
+        sheepContract = IERC721(_sheepAddress);
+        elephantContract = IERC721(_elephantAddress);
     }
 
-    /**
-     * @dev Convertir 10 Chicken en 1 Sheep
-     */
-    function convertChickenToSheep(
-        uint256[] calldata chickenTokenIds,
-        string memory sheepName,
-        string memory ipfsHash,
-        uint256 sheepValue
-    ) external {
-        require(chickenTokenIds.length == 10, "Need exactly 10 Chicken tokens");
+    function lockChicken(uint256 tokenId) external onlyOwner {
+        chickenLocked[tokenId] = true;
+    }
 
-        IChicken chickenContract = IChicken(chicken);
+    function unlockChicken(uint256 tokenId) external onlyOwner {
+        chickenLocked[tokenId] = false;
+    }
 
-        // Transfert des 10 Chicken tokens vers ce contrat
+    function lockSheep(uint256 tokenId) external onlyOwner {
+        sheepLocked[tokenId] = true;
+    }
+
+    function unlockSheep(uint256 tokenId) external onlyOwner {
+        sheepLocked[tokenId] = false;
+    }
+
+    function lockElephant(uint256 tokenId) external onlyOwner {
+        elephantLocked[tokenId] = true;
+    }
+
+    function unlockElephant(uint256 tokenId) external onlyOwner {
+        elephantLocked[tokenId] = false;
+    }
+
+    function exchangeChickenForSheep(uint256[] calldata chickenTokenIds, uint256 sheepTokenId) external {
+        require(chickenTokenIds.length == 3, "You must provide exactly 3 chicken token IDs");
+        require(!sheepLocked[sheepTokenId], "Sheep token is locked");
+
         for (uint256 i = 0; i < chickenTokenIds.length; i++) {
-            require(chickenContract.ownerOf(chickenTokenIds[i]) == msg.sender, "Not owner of these Chicken tokens");
+            require(!chickenLocked[chickenTokenIds[i]], "Chicken token is locked");
             chickenContract.transferFrom(msg.sender, address(this), chickenTokenIds[i]);
         }
 
-        // Mint 1 Sheep
-        ISheep sheepContract = ISheep(sheep);
-        sheepContract.mintSheep(msg.sender, sheepName, ipfsHash, sheepValue);
+        sheepContract.transferFrom(address(this), msg.sender, sheepTokenId);
     }
 
-    /**
-     * @dev Convertir 10 Sheep en 1 Elephant
-     */
-    function convertSheepToElephant(
-        uint256[] calldata sheepTokenIds,
-        string memory elephantName,
-        string memory ipfsHash,
-        uint256 elephantValue
-    ) external {
-        require(sheepTokenIds.length == 10, "Need exactly 10 Sheep tokens");
+    function exchangeSheepForElephant(uint256[] calldata sheepTokenIds, uint256 elephantTokenId) external {
+        require(sheepTokenIds.length == 3, "You must provide exactly 3 sheep token IDs");
+        require(!elephantLocked[elephantTokenId], "Elephant token is locked");
 
-        ISheep sheepContract = ISheep(sheep);
-
-        // Transfert des 10 Sheep tokens vers ce contrat
         for (uint256 i = 0; i < sheepTokenIds.length; i++) {
-            require(sheepContract.ownerOf(sheepTokenIds[i]) == msg.sender, "Not owner of these Sheep tokens");
+            require(!sheepLocked[sheepTokenIds[i]], "Sheep token is locked");
             sheepContract.transferFrom(msg.sender, address(this), sheepTokenIds[i]);
         }
 
-        // Mint 1 Elephant
-        IElephant elephantContract = IElephant(elephant);
-        elephantContract.mintElephant(msg.sender, elephantName, ipfsHash, elephantValue);
+        elephantContract.transferFrom(address(this), msg.sender, elephantTokenId);
+    }
+
+    function withdrawTokens(address tokenContract, uint256 tokenId) external onlyOwner {
+        IERC721(tokenContract).transferFrom(address(this), msg.sender, tokenId);
     }
 }

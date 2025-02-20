@@ -17,4 +17,14 @@ contract Elephant is Animal {
     ) external onlyOwner {
         _mintResource(to, name_, "Elephant", ELEPHANT_VALUE, ipfsHash_);
     }
+
+    /**
+     * @notice Brûler un Elephant existant
+     * @param tokenId ID du token à brûler
+     */
+    function burnResource(uint256 tokenId) external {
+        // Vérifier que l'appelant est le propriétaire ou approuvé
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "Elephant: caller is not owner nor approved");
+        _burnResource(tokenId);
+    }
 }
