@@ -1,6 +1,6 @@
-// polyfillFetch.js
 const originalFetch = globalThis.fetch;
 
+// notre sauveur de IPFS merci à lui
 globalThis.fetch = async (url, options = {}) => {
   // Force the 'duplex' if there's a body
   if (options.body) {
