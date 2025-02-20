@@ -1,119 +1,90 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("Animal Contract (via Chicken.sol)", function () {
-  let chicken, owner, addr1, addr2, addr3;
+describe("Animal Contract (Base)", function () {
+  let animal, owner, addr1, addr2, exchange;
 
-  // 🛠 Fonction utilitaire pour avancer le temps et générer un bloc
   async function increaseTimeAndMine(seconds) {
     await ethers.provider.send("evm_increaseTime", [seconds]);
+    await ethers.provider.send("evm_mine");
   }
 
   before(async function () {
-    [owner, addr1, addr2] = await ethers.getSigners();
-
-    // Déploiement du contrat Chicken (hérite d'Animal)
+    [owner, addr1, addr2, exchange] = await ethers.getSigners();
+    
     const Chicken = await ethers.getContractFactory("Chicken");
-    chicken = await Chicken.deploy();
-    await chicken.waitForDeployment();
+    animal = await Chicken.deploy();
+    await animal.waitForDeployment();
   });
 
-  // 📌 TEST 1: Mint d'un Chicken
   it("Should mint a Chicken NFT to addr1", async function () {
-    await chicken.mintChicken(addr1.address, "Chicken1", "QmIPFSHash");
-    expect(await chicken.balanceOf(addr1.address)).to.equal(1);
+    await animal.mintChicken(addr1.address, "MyChicken", "QmIPFSHash");
+    expect(await animal.balanceOf(addr1.address)).to.equal(1);
   });
 
-  // 📌 TEST 2: Vérifier le verrouillage après acquisition
+  it("Should enforce the max token limit per owner", async function () {
+    for (let i = 1; i < 10; i++) {
+      await animal.mintChicken(addr1.address, `Chicken${i}`, "QmIPFSHash");
+    }
+    
+    expect(await animal.balanceOf(addr1.address)).to.equal(10);
+    
+    await expect(animal.mintChicken(addr1.address, "Chicken11", "QmIPFSHash"))
+      .to.be.revertedWith("Animal: receiver already has max tokens");
+  });
+
   it("Should enforce lock period after acquisition", async function () {
-    // 🔥 Mint un Chicken à addr1
-    await chicken.mintChicken(addr1.address, "LockedChicken", "QmIPFSHash");
+    // Nettoyer quelques tokens de addr1 pour libérer de l'espace
+    await animal.connect(addr1).burnResource(1);
+    await animal.connect(addr1).burnResource(2);
+    
+    // Mint un nouveau token pour addr2
+    await animal.mintChicken(addr2.address, "LockedChicken", "QmIPFSHash");
+    const newTokenId = 11; // Le prochain ID après les 10 premiers
 
-    // ✅ Récupérer le tokenId du dernier mint (2ème mint donc tokenId = 2)
-    const tokenId = 2;
-
-    // 🕒 Vérifier que le NFT est verrouillé immédiatement après le mint
-    const metadata = await chicken.getResourceMetadata(tokenId);
-    const currentTime = (await ethers.provider.getBlock("latest")).timestamp;
-    expect(currentTime).to.be.lessThan(metadata.lockedUntil);
-
-    // ❌ Essayer de transférer immédiatement après le mint (doit échouer)
+    // Tentative de transfert avant expiration du verrouillage
     await expect(
-      chicken.connect(addr1).transferFrom(addr1.address, addr2.address, tokenId)
+      animal.connect(addr2).transferFrom(addr2.address, addr1.address, newTokenId)
     ).to.be.revertedWith("Animal: token is locked after acquisition");
 
-    // ⏳ Attendre la fin du verrouillage (10 minutes)
+    // Attendre la fin du verrouillage
     await increaseTimeAndMine(601);
 
-    // ✅ Transfert doit réussir après expiration du verrouillage
-    await chicken.connect(addr1).transferFrom(addr1.address, addr2.address, tokenId);
-
-    // 🎯 Vérifier que le NFT appartient bien à addr2 après transfert
-    expect(await chicken.ownerOf(tokenId)).to.equal(addr2.address);
+    // Le transfert doit maintenant être possible
+    await animal.connect(addr2).transferFrom(addr2.address, addr1.address, newTokenId);
+    expect(await animal.ownerOf(newTokenId)).to.equal(addr1.address);
   });
 
-  // 📌 TEST 3: Vérifier la limite de 10 tokens par utilisateur
-  it("Should enforce the max token limit per owner", async function () {
-    for (let i = 2; i <= 10; i++) {
-      await chicken.mintChicken(addr1.address, `Chicken${i}`, "QmIPFSHash");
-    }
-    expect(await chicken.balanceOf(addr1.address)).to.equal(10);
+  it("Should allow exchange address to bypass restrictions", async function () {
+    await animal.setExchangeAddress(exchange.address);
+    
+    // Nettoyer un token de plus pour faire de la place
+    await animal.connect(addr1).burnResource(3);
+    
+    await animal.mintChicken(addr1.address, "ExchangeChicken", "QmIPFSHash");
+    const exchangeTokenId = 12;
+    
+    await animal.connect(addr1).setApprovalForAll(exchange.address, true);
 
-    // ❌ Essayer de minter un 11ème Chicken → doit échouer
-    await expect(
-      chicken.mintChicken(addr1.address, "Chicken11", "QmIPFSHash")
-    ).to.be.revertedWith("Animal: receiver already has 10 tokens of this type");
+    await animal.connect(exchange).transferFrom(addr1.address, addr2.address, exchangeTokenId);
+    expect(await animal.ownerOf(exchangeTokenId)).to.equal(addr2.address);
   });
 
-  /*// 📌 TEST 4: Vérifier le cooldown entre transferts
-  it("Should enforce cooldown between transfers", async function () {
-    // 🔥 Mint 10 Chicken pour addr1
-    for (let i = 1; i <= 10; i++) {
-      await chicken.mintChicken(addr1.address, `Chicken${i}`, "QmIPFSHash");
-    }
+  it("Should allow burning of tokens by owner or approved", async function () {
+    await animal.mintChicken(addr1.address, "BurnChicken", "QmIPFSHash");
+    const burnTokenId = 13;
+    
+    await animal.connect(addr1).burnResource(burnTokenId);
+    
+    await expect(animal.ownerOf(burnTokenId)).to.be.reverted;
+  });
 
-    // ✅ Vérifier que addr1 possède bien 10 tokens
-    expect(await chicken.balanceOf(addr1.address)).to.equal(10);
+  it("Should prevent non-owners from burning tokens", async function () {
+    await animal.mintChicken(addr1.address, "BadBurn", "QmIPFSHash");
+    const nonOwnerBurnTokenId = 14;
 
-    // 🔄 Approuver addr1 pour pouvoir transférer ses tokens
-    await chicken.connect(addr1).setApprovalForAll(addr2.address, true);
-
-    // ⏳ Attendre la fin du verrouillage initial (10 minutes)
-    await increaseTimeAndMine(600);
-
-    // 🔄 Transfert Chicken #1 de addr1 → addr2 ✅
-    await chicken.connect(addr1).transferFrom(addr1.address, addr2.address, 1);
-    expect(await chicken.ownerOf(1)).to.equal(addr2.address);
-
-    // ✅ Vérifier que addr1 a maintenant 9 tokens
-    expect(await chicken.balanceOf(addr1.address)).to.equal(9);
-
-    // ✅ Maintenant, addr1 peut minter un autre Chicken
-    await chicken.mintChicken(addr1.address, "NewChicken", "QmIPFSHash");
-
-    // 🔄 Vérifier que addr1 a de nouveau 10 tokens
-    expect(await chicken.balanceOf(addr1.address)).to.equal(10);
-
-    // ⏳ Attendre 5 minutes (COOLDOWN exact)
-    console.log("⏳ Attente du cooldown de 5 minutes...");
-    await increaseTimeAndMine(300);
-
-    // 🔄 Premier transfert après cooldown (addr1 ➝ addr2) ✅
-    await chicken.connect(addr1).transferFrom(addr1.address, addr2.address, 2);
-    expect(await chicken.ownerOf(2)).to.equal(addr2.address);
-
-    // ❌ Essayer un transfert immédiat après (doit échouer à cause du cooldown)
     await expect(
-      chicken.connect(addr2).transferFrom(addr2.address, addr1.address, 2)
-    ).to.be.revertedWith("Animal: transfer cooldown not finished");
-
-    // ⏳ Attente exacte du cooldown (5 minutes)
-    console.log("⏳ Attente du cooldown exact de 5 minutes...");
-    await increaseTimeAndMine(300);
-
-    // ✅ Maintenant, le transfert doit être autorisé
-    await chicken.connect(addr2).transferFrom(addr2.address, addr1.address, 2);
-    expect(await chicken.ownerOf(2)).to.equal(addr1.address);
-  });*/
-  
+      animal.connect(addr2).burnResource(nonOwnerBurnTokenId)
+    ).to.be.revertedWith("Chicken: caller is not owner nor approved");
+  });
 });
