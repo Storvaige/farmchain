@@ -35,11 +35,13 @@ async function main() {
 
     console.log(`${green}\n=== Listing up to ${maxTokens} tokens for ${contractName} ===${reset}`);
     let foundTokens = false;
+    let tokenCount = 0;
     for (let tokenId = 1; tokenId <= maxTokens; tokenId++) {
         try {
             const tokenOwner = await contract.ownerOf(tokenId);
             if (tokenOwner === ownerAddress) {
                 foundTokens = true;
+                tokenCount++;
                 const meta = await contract.getResourceMetadata(tokenId);
                 try {
                     const createdDate = meta.createdAt ? new Date(Number(meta.createdAt) * 1000).toISOString() : 'N/A';
@@ -66,12 +68,19 @@ async function main() {
     if (!foundTokens) {
         console.error(`${green}No tokens found for ${contractName} owned by ${ownerAddress}${reset}`);
     }
+    return tokenCount;
   }
 
   // 5) Lister pour chaque type d’animal (Chicken, Sheep, Elephant)
-  await listTokensForOwner(chicken,  "Chicken",  admin.address, maxTokenz);
-  await listTokensForOwner(sheep,    "Sheep",    admin.address, maxTokenz);
-  await listTokensForOwner(elephant, "Elephant", admin.address, maxTokenz);
+  const chickenCount = await listTokensForOwner(chicken,  "Chicken",  admin.address, maxTokenz);
+  const sheepCount   = await listTokensForOwner(sheep,    "Sheep",    admin.address, maxTokenz);
+  const elephantCount= await listTokensForOwner(elephant, "Elephant", admin.address, maxTokenz);
+
+  // 6) Afficher le solde de l'utilisateur et son équivalence
+  console.log("\n== User Balance ==");
+  console.log(`Chickens: ${chickenCount}`);
+  console.log(`Sheep: ${sheepCount}`);
+  console.log(`Elephants: ${elephantCount}`);
 
   console.log("\n== Done listing tokens for admin. ==");
 }
